@@ -71,13 +71,12 @@ double PID::TotalError() {
     // Compute control value
     double control = term_p + term_i + term_d;
 
-// #define DEBUG_CONTROLLER
 #ifdef DEBUG_CONTROLLER
-    // Limit control output
     std::cout << "Before limit: " << control << std::endl;
     std::cout << "min: " << output_min << std::endl;
     std::cout << "max: " << output_max << std::endl;
 #endif
+    // Limit control output
     control = std::max(control, output_min);
     control = std::min(control, output_max);
 

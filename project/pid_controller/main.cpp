@@ -367,6 +367,8 @@ int main ()
           for(int j=0; j < i - 1; ++j){
               file_throttle.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
           }
+
+#ifdef DEBUG_CONTROLLER
           file_throttle  << "Cycle: " << i ;
           file_throttle  << ", max-output: " << pid_throttle.output_max;
           file_throttle  << ", min-output: " << pid_throttle.output_min;
@@ -379,6 +381,12 @@ int main ()
           file_throttle  << ", speed error: " << error_throttle;
           file_throttle  << ", brake: " << brake_output;
           file_throttle  << ", throttle: " << throttle_output << endl;
+#else
+          file_throttle  << i ;
+          file_throttle  << " " << error_throttle;
+          file_throttle  << " " << brake_output;
+          file_throttle  << " " << throttle_output << endl;
+#endif
 
           // Send control
           json msgJson;
