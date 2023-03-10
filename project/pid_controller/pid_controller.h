@@ -17,18 +17,27 @@ public:
     /*
     * Errors
     */
+    double error_p{0.0};
+    double error_i{0.0};
+    double error_d{0.0};
 
     /*
     * Coefficients
     */
+    double parameter_p{0.0};
+    double parameter_i{0.0};
+    double parameter_d{0.0};
 
     /*
     * Output limits
     */
+    double output_max{0.0};
+    double output_min{0.0};
   
     /*
     * Delta time
     */
+    double delta_time{1.0};
 
     /*
     * Constructor
@@ -59,6 +68,10 @@ public:
     * Update the delta time.
     */
     double UpdateDeltaTime(double new_delta_time);
+
+private:
+
+    constexpr double DIV_ZERO_THRESH{0.0001};
 };
 
 #endif //PID_CONTROLLER_H
