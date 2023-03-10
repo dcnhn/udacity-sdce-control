@@ -205,7 +205,6 @@ int main ()
 
   fstream file_steer;
   file_steer.open("steer_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
-  file_steer.close();
   fstream file_throttle;
   file_throttle.open("throttle_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
 
@@ -290,35 +289,59 @@ int main ()
           /**
           * TODO (step 3): uncomment these lines
           **/
-//           // Update the delta time with the previous command
-//           pid_steer.UpdateDeltaTime(new_delta_time);
+          // Update the delta time with the previous command
+          pid_steer.UpdateDeltaTime(new_delta_time);
 
           // Compute steer error
           double error_steer;
-
-
           double steer_output;
 
           /**
           * TODO (step 3): compute the steer error (error_steer) from the position and the desired trajectory
           **/
-//           error_steer = 0;
+          error_steer = 0;
 
           /**
           * TODO (step 3): uncomment these lines
           **/
-//           // Compute control to apply
-//           pid_steer.UpdateError(error_steer);
-//           steer_output = pid_steer.TotalError();
+          // Compute control to apply
+          pid_steer.UpdateError(error_steer);
+          steer_output = pid_steer.TotalError();
 
-//           // Save data
-//           file_steer.seekg(std::ios::beg);
-//           for(int j=0; j < i - 1; ++j) {
-//               file_steer.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-//           }
-//           file_steer  << i ;
-//           file_steer  << " " << error_steer;
-//           file_steer  << " " << steer_output << endl;
+          // Save data
+          file_steer.seekg(std::ios::beg);
+          for(int j=0; j < i - 1; ++j) {
+              file_steer.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+          }
+
+          // Save first two samples of planned path in local variables
+          double x0 = (x_points.size() > 0) ? x_points.at(0) : 0.0;
+          double x1 = (x_points.size() > 1) ? x_points.at(1) : 0.0;
+          double y0 = (y_points.size() > 0) ? y_points.at(0) : 0.0;
+          double y1 = (y_points.size() > 1) ? y_points.at(1) : 0.0;
+
+#ifdef DEBUG_CONTROLLER
+          file_steer  << "Cycle: " << i ;
+          file_steer  << ", max-output: " << pid_steer.output_max;
+          file_steer  << ", min-output: " << pid_steer.output_min;
+          file_steer  << ", para-P: " << pid_steer.parameter_p;
+          file_steer  << ", para-I: " << pid_steer.parameter_i;
+          file_steer  << ", para-D: " << pid_steer.parameter_d;
+          file_steer  << ", P-error: " << pid_steer.error_p;
+          file_steer  << ", I-error: " << pid_steer.error_i;
+          file_steer  << ", D-error: " << pid_steer.error_d;
+          // file_steer  << ", current yaw local: " << yaw;
+          file_steer  << ", x0: " << x0;
+          file_steer  << ", x1: " << x1;
+          file_steer  << ", y0: " << y0;
+          file_steer  << ", y1: " << y1;
+          file_steer  << ", yaw error: " << error_steer;
+          file_steer  << ", steer output: " << steer_output << endl;
+#else
+          file_steer  << i ;
+          file_steer  << " " << error_steer;
+          file_steer  << " " << steer_output << endl;
+#endif
 
           ////////////////////////////////////////
           // Throttle control
@@ -378,6 +401,8 @@ int main ()
           file_throttle  << ", P-error: " << pid_throttle.error_p;
           file_throttle  << ", I-error: " << pid_throttle.error_i;
           file_throttle  << ", D-error: " << pid_throttle.error_d;
+          file_throttle  << ", target speed: " << v_points.at(number_points - 1);
+          file_throttle  << ", current speed: " << velocity;
           file_throttle  << ", speed error: " << error_throttle;
           file_throttle  << ", brake: " << brake_output;
           file_throttle  << ", throttle: " << throttle_output << endl;
@@ -445,4 +470,5 @@ int main ()
     }
 
   file_throttle.close();
+  file_steer.close();
 }

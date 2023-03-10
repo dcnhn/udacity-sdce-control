@@ -7,7 +7,7 @@
 #ifndef PID_CONTROLLER_H
 #define PID_CONTROLLER_H
 
-// #define DEBUG_CONTROLLER
+#define DEBUG_CONTROLLER
 
 class PID {
 public:
