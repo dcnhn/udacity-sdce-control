@@ -67,11 +67,11 @@ public:
     /*
     * Update the delta time.
     */
-    double UpdateDeltaTime(double new_delta_time);
+    void UpdateDeltaTime(double new_delta_time);
 
 private:
 
-    constexpr double DIV_ZERO_THRESH{0.0001};
+    static constexpr double DIV_ZERO_THRESH{0.0001};
 };
 
 #endif //PID_CONTROLLER_H

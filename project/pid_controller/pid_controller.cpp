@@ -68,14 +68,26 @@ double PID::TotalError() {
     double term_i = parameter_i * error_i;
     double term_d = parameter_d * error_d;
 
-    // Limit the output to the given range
-    double control = std::max((-term_p - term_i - term_d), output_min);
+    // Compute control value
+    double control = term_p + term_i + term_d;
+
+// #define DEBUG_CONTROLLER
+#ifdef DEBUG_CONTROLLER
+    // Limit control output
+    std::cout << "Before limit: " << control << std::endl;
+    std::cout << "min: " << output_min << std::endl;
+    std::cout << "max: " << output_max << std::endl;
+#endif
+    control = std::max(control, output_min);
     control = std::min(control, output_max);
 
+#ifdef DEBUG_CONTROLLER
+    std::cout << "After limit: " << control << std::endl;
+#endif
     return control;
 }
 
-double PID::UpdateDeltaTime(double new_delta_time) {
+void PID::UpdateDeltaTime(double new_delta_time) {
     /**
     * TODO: Update the delta time with new value
     */
