@@ -228,7 +228,7 @@ int main ()
   PID pid_throttle = PID();
 
   // Initialize both controllers, start with dummy values
-  pid_steer.Init(1.0, 1.0, 1.0, 1.2, -1.2);
+  pid_steer.Init(0.1, 0.0, 0.0, 1.2, -1.2);
   pid_throttle.Init(0.1, 0.03, 0.07, 1.0, -1.0);
 
   h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i, &prev_timer](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
@@ -304,6 +304,69 @@ int main ()
           **/
           error_steer = 0;
 
+          // Get number of iterations
+          // The segments of the path are computed within the loop.
+          // Therefore, the path should have at least 2 samples.
+          size_t num_iterations = std::min(x_points.size(), y_points.size());
+          num_iterations = (num_iterations > 1) ? (num_iterations - 1) : 0;
+
+          // Iterate over the planned path if the number of samples is valid
+          for (size_t i = 0; i < num_iterations; i++)
+          {
+            // Compute the segment vector
+            double segment_vector_x = x_points.at(i + 1) - x_points.at(i);
+            double segment_vector_y = y_points.at(i + 1) - y_points.at(i);
+
+            // Compute the displacement vector between ith sample and current position
+            double disp_vector_x = x_position - x_points.at(i);
+            double disp_vector_y = y_position - y_points.at(i);
+
+            // Compute the dot product between both vectors
+            double dot_product = (segment_vector_x * disp_vector_x) + (segment_vector_y * disp_vector_y);
+
+            // Check if the dot product is negative
+            // Negative dot product means the current position is behind the currently processed sample
+            if (dot_product < 0.0)
+            {
+              // Re-compute with predecessor point
+              if (i > 0)
+              {
+                segment_vector_x = x_points.at(i) - x_points.at(i - 1);
+                segment_vector_y = y_points.at(i) - y_points.at(i - 1);
+
+                disp_vector_x = x_position - x_points.at(i - 1);
+                disp_vector_y = y_position - y_points.at(i - 1);
+              }
+
+              // Compute magnitude
+              double magnitude_segment = sqrt((segment_vector_x * segment_vector_x) + (segment_vector_y * segment_vector_y));
+              double magnitude_disp = sqrt((disp_vector_x * disp_vector_x) + (disp_vector_y * disp_vector_y));
+
+              // Normalize vectors if the magnitude is not zero
+              if ((std::abs(magnitude_disp) >= 0.001) && (std::abs(magnitude_segment) >= 0.001))
+              {
+                segment_vector_x /= magnitude_segment;
+                segment_vector_y /= magnitude_segment;
+
+                disp_vector_x /= magnitude_disp;
+                disp_vector_y /= magnitude_disp;
+
+                // Compute cosine(angle) of the unit vectors which is the dot product
+                dot_product = (segment_vector_x * disp_vector_x) + (segment_vector_y * disp_vector_y);
+
+                // Compute z-component of cross product
+                double cross_product = segment_vector_x * (-disp_vector_y) + segment_vector_y * disp_vector_x;
+
+                // Compute error steer
+                error_steer = (cross_product < 0.0) ? -1.0 : 1.0;
+                error_steer *= acos(dot_product);
+              }
+
+              // End for-loop
+              break;
+            }
+          }
+
           /**
           * TODO (step 3): uncomment these lines
           **/
@@ -332,7 +395,10 @@ int main ()
           file_steer  << " " << x1_planned;
           file_steer  << " " << y1_planned;
           file_steer  << " " << x_position;
-          file_steer  << " " << y_position << endl;
+          file_steer  << " " << y_position;
+          file_steer  << " " << pid_steer.output_p;
+          file_steer  << " " << pid_steer.output_i;
+          file_steer  << " " << pid_steer.output_d << endl;
 
           ////////////////////////////////////////
           // Throttle control
