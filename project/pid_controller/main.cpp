@@ -207,6 +207,8 @@ int main ()
   file_steer.open("steer_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
   fstream file_throttle;
   file_throttle.open("throttle_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
+  file_throttle.close();
+  file_steer.close();
 
   time_t prev_timer;
   time_t timer;
@@ -227,7 +229,7 @@ int main ()
 
   // Initialize both controllers, start with dummy values
   pid_steer.Init(1.0, 1.0, 1.0, 1.2, -1.2);
-  pid_throttle.Init(0.6, 0.1, 0.3, 1.0, -1.0);
+  pid_throttle.Init(0.1, 0.03, 0.07, 1.0, -1.0);
 
   h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i, &prev_timer](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
   {
@@ -280,6 +282,7 @@ int main ()
           // Save time and compute delta time
           time(&timer);
           new_delta_time = difftime(timer, prev_timer);
+          std::cout << "Delta time: " << new_delta_time << std::endl;
           prev_timer = timer;
 
           ////////////////////////////////////////
@@ -315,33 +318,21 @@ int main ()
           }
 
           // Save first two samples of planned path in local variables
-          double x0 = (x_points.size() > 0) ? x_points.at(0) : 0.0;
-          double x1 = (x_points.size() > 1) ? x_points.at(1) : 0.0;
-          double y0 = (y_points.size() > 0) ? y_points.at(0) : 0.0;
-          double y1 = (y_points.size() > 1) ? y_points.at(1) : 0.0;
+          double x0_planned = (x_points.size() > 0) ? x_points.at(0) : 0.0;
+          double x1_planned = (x_points.size() > 1) ? x_points.at(1) : 0.0;
+          double y0_planned = (y_points.size() > 0) ? y_points.at(0) : 0.0;
+          double y1_planned = (y_points.size() > 1) ? y_points.at(1) : 0.0;
 
-#ifdef DEBUG_CONTROLLER
-          file_steer  << "Cycle: " << i ;
-          file_steer  << ", max-output: " << pid_steer.output_max;
-          file_steer  << ", min-output: " << pid_steer.output_min;
-          file_steer  << ", para-P: " << pid_steer.parameter_p;
-          file_steer  << ", para-I: " << pid_steer.parameter_i;
-          file_steer  << ", para-D: " << pid_steer.parameter_d;
-          file_steer  << ", P-error: " << pid_steer.error_p;
-          file_steer  << ", I-error: " << pid_steer.error_i;
-          file_steer  << ", D-error: " << pid_steer.error_d;
-          // file_steer  << ", current yaw local: " << yaw;
-          file_steer  << ", x0: " << x0;
-          file_steer  << ", x1: " << x1;
-          file_steer  << ", y0: " << y0;
-          file_steer  << ", y1: " << y1;
-          file_steer  << ", yaw error: " << error_steer;
-          file_steer  << ", steer output: " << steer_output << endl;
-#else
-          file_steer  << i ;
+          file_steer  << i;
+          file_steer  << " " << sim_time;
           file_steer  << " " << error_steer;
-          file_steer  << " " << steer_output << endl;
-#endif
+          file_steer  << " " << steer_output;
+          file_steer  << " " << x0_planned;
+          file_steer  << " " << y0_planned;
+          file_steer  << " " << x1_planned;
+          file_steer  << " " << y1_planned;
+          file_steer  << " " << x_position;
+          file_steer  << " " << y_position << endl;
 
           ////////////////////////////////////////
           // Throttle control
@@ -360,9 +351,12 @@ int main ()
           **/
           // modify the following line for step 2
           auto number_points = v_points.size();
+          double target_speed = 0.0;
           if (number_points > 0)
           {
-            error_throttle = v_points.at(number_points - 1) - velocity;
+            // target_speed = v_points.at(1);
+            target_speed = v_points.at(number_points - 1);
+            error_throttle = target_speed - velocity;
           }
 
           // Output variables of controller
@@ -391,27 +385,16 @@ int main ()
               file_throttle.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
           }
 
-#ifdef DEBUG_CONTROLLER
-          file_throttle  << "Cycle: " << i ;
-          file_throttle  << ", max-output: " << pid_throttle.output_max;
-          file_throttle  << ", min-output: " << pid_throttle.output_min;
-          file_throttle  << ", para-P: " << pid_throttle.parameter_p;
-          file_throttle  << ", para-I: " << pid_throttle.parameter_i;
-          file_throttle  << ", para-D: " << pid_throttle.parameter_d;
-          file_throttle  << ", P-error: " << pid_throttle.error_p;
-          file_throttle  << ", I-error: " << pid_throttle.error_i;
-          file_throttle  << ", D-error: " << pid_throttle.error_d;
-          file_throttle  << ", target speed: " << v_points.at(number_points - 1);
-          file_throttle  << ", current speed: " << velocity;
-          file_throttle  << ", speed error: " << error_throttle;
-          file_throttle  << ", brake: " << brake_output;
-          file_throttle  << ", throttle: " << throttle_output << endl;
-#else
           file_throttle  << i ;
+          file_throttle  << " " << sim_time;
           file_throttle  << " " << error_throttle;
           file_throttle  << " " << brake_output;
-          file_throttle  << " " << throttle_output << endl;
-#endif
+          file_throttle  << " " << throttle_output;
+          file_throttle  << " " << target_speed;
+          file_throttle  << " " << velocity;
+          file_throttle  << " " << pid_throttle.output_p;
+          file_throttle  << " " << pid_throttle.output_i;
+          file_throttle  << " " << pid_throttle.output_d << endl;
 
           // Send control
           json msgJson;
@@ -468,7 +451,4 @@ int main ()
       cerr << "Failed to listen to port" << endl;
       return -1;
     }
-
-  file_throttle.close();
-  file_steer.close();
 }
