@@ -47,7 +47,10 @@ void PID::UpdateError(double cte) {
     if (std::abs(dt) >= DIV_ZERO_THRESH)
     {
         // Normally, we should filter numerical derivatives to reduce noise.
-        error_d = (error_p - previous_error_p) / dt;
+        double new_error_d = (error_p - previous_error_p) / dt;
+
+        // Filter error_d
+        error_d = (1.0 - FILTER_D) * error_d + FILTER_D * new_error_d;
     }
 
     // Numerical integration for error_p.
@@ -64,25 +67,17 @@ double PID::TotalError() {
     * TODO: Calculate and return the total error
     * The code should return a value in the interval [output_lim_mini, output_lim_maxi]
     */
-    double term_p = parameter_p * error_p;
-    double term_i = parameter_i * error_i;
-    double term_d = parameter_d * error_d;
+    output_p = parameter_p * error_p;
+    output_i = parameter_i * error_i;
+    output_d = parameter_d * error_d;
 
     // Compute control value
-    double control = term_p + term_i + term_d;
+    double control = output_p + output_i + output_d;
 
-#ifdef DEBUG_CONTROLLER
-    std::cout << "Before limit: " << control << std::endl;
-    std::cout << "min: " << output_min << std::endl;
-    std::cout << "max: " << output_max << std::endl;
-#endif
     // Limit control output
     control = std::max(control, output_min);
     control = std::min(control, output_max);
 
-#ifdef DEBUG_CONTROLLER
-    std::cout << "After limit: " << control << std::endl;
-#endif
     return control;
 }
 

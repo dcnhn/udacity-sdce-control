@@ -7,8 +7,6 @@
 #ifndef PID_CONTROLLER_H
 #define PID_CONTROLLER_H
 
-#define DEBUG_CONTROLLER
-
 class PID {
 public:
 
@@ -29,6 +27,13 @@ public:
     double parameter_p{0.0};
     double parameter_i{0.0};
     double parameter_d{0.0};
+
+    /*
+    * Partial outputs
+    */
+    double output_p{0.0};
+    double output_i{0.0};
+    double output_d{0.0};
 
     /*
     * Output limits
@@ -74,6 +79,7 @@ public:
 private:
 
     static constexpr double DIV_ZERO_THRESH{0.0001};
+    static constexpr double FILTER_D{0.8};
 };
 
 #endif //PID_CONTROLLER_H
