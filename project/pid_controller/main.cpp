@@ -304,6 +304,42 @@ int main ()
           **/
           error_steer = 0;
 
+          size_t num_points = std::min(x_points.size(), y_points.size());
+
+          if (num_points > 0)
+          {
+            // Compute displacement vector and the magnitude
+            double disp_vector_x = x_points.at(num_points - 1) - x_position;
+            double disp_vector_y = y_points.at(num_points - 1) - y_position;
+            double magnitude_disp = sqrt((disp_vector_x * disp_vector_x) + (disp_vector_y * disp_vector_y));
+
+            // Compute the dot product between both vectors
+            double yaw_vector_x = cos(yaw);
+            double yaw_vector_y = sin(yaw);
+
+            // Check if the dot product is positive
+            // Positive dot product means the last point of the 
+            if (std::abs(magnitude_disp) >= 0.001)
+            {
+              disp_vector_x /= magnitude_disp;
+              disp_vector_y /= magnitude_disp;
+
+              // Compute cosine(angle) of the unit vectors which is the dot product
+              double dot_product = (yaw_vector_x * disp_vector_x) + (yaw_vector_y * disp_vector_y);
+
+              // Compute z-component of cross product
+              double cross_product = yaw_vector_x * (-disp_vector_y) + yaw_vector_y * disp_vector_x;
+
+              // Compute error steer
+              error_steer = (cross_product < 0.0) ? -1.0 : 1.0;
+              error_steer *= acos(dot_product);
+            }
+          }
+
+#if 0
+          size_t num_iterations = std::min(x_points.size(), y_points.size());
+          num_iterations = (num_iterations > 1) ? (num_iterations - 1) : 0;
+
           // Get number of iterations
           // The segments of the path are computed within the loop.
           // Therefore, the path should have at least 2 samples.
@@ -366,6 +402,7 @@ int main ()
               break;
             }
           }
+#endif
 
           /**
           * TODO (step 3): uncomment these lines
