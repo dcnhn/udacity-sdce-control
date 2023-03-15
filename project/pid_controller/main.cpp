@@ -228,7 +228,7 @@ int main ()
   PID pid_throttle = PID();
 
   // Initialize both controllers, start with dummy values
-  pid_steer.Init(0.1, 0.0, 0.0, 1.2, -1.2);
+  pid_steer.Init(-0.02, -0.008, -0.01, 1.2, -1.2);
   pid_throttle.Init(0.1, 0.03, 0.07, 1.0, -1.0);
 
   h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i, &prev_timer](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
@@ -427,12 +427,7 @@ int main ()
           file_steer  << " " << sim_time;
           file_steer  << " " << error_steer;
           file_steer  << " " << steer_output;
-          file_steer  << " " << x0_planned;
-          file_steer  << " " << y0_planned;
-          file_steer  << " " << x1_planned;
-          file_steer  << " " << y1_planned;
-          file_steer  << " " << x_position;
-          file_steer  << " " << y_position;
+          file_steer  << " " << yaw;
           file_steer  << " " << pid_steer.output_p;
           file_steer  << " " << pid_steer.output_i;
           file_steer  << " " << pid_steer.output_d << endl;

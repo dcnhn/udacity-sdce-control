@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 
 def read_steer_data():
  steer_file = 'steer_pid_data.txt'
- steer_df = pd.read_csv(steer_file, delim_whitespace = True, header = None, usecols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
- steer_df.columns = ['Iteration', 'Sim Time', 'Error Steering', 'Steering Output', 'x0 Planned', 'y0 Planned', 'x1 Planned', 'y1 Planned', 'x0 Current', 'y0 Current', 'Output-P', 'Output-I', 'Output-D']
+ steer_df = pd.read_csv(steer_file, delim_whitespace = True, header = None, usecols = [0, 1, 2, 3, 4, 5, 6, 7])
+ steer_df.columns = ['Iteration', 'Sim Time', 'Error Steering', 'Steering Output', 'Yaw', 'Output-P', 'Output-I', 'Output-D']
  print(f'Steer data:\n{steer_df.head()}\n')
  return steer_df
 
@@ -19,7 +19,7 @@ def read_throttle_data():
 
 def plot_steer_data(steer_df, n_rows):   
  steer_df2 = steer_df[:n_rows]
- steer_df2.plot(x = steer_df.columns[1], y = [steer_df.columns[2], steer_df.columns[3]], kind = 'line')
+ steer_df2.plot(x = steer_df.columns[1], y = [steer_df.columns[2], steer_df.columns[3], steer_df.columns[4]], kind = 'line')
 
  #steer_cpy = steer_df2[['Sim Time', 'x0 Planned', 'y0 Planned', 'x1 Planned', 'y1 Planned', 'x0 Current', 'y0 Current']]
  #steer_cpy.plot(x = steer_cpy.columns[0], y = [steer_cpy.columns[1], steer_cpy.columns[2], steer_cpy.columns[3], steer_cpy.columns[4], steer_cpy.columns[5], steer_cpy.columns[6]], kind = 'line', style= '.-')
@@ -40,7 +40,7 @@ def main():
  throttle_df = read_throttle_data()
  n_rows = -1 #2000
  plot_steer_data(steer_df, n_rows)
- plot_throttle_data(throttle_df, n_rows)
+ #plot_throttle_data(throttle_df, n_rows)
  plt.show()
  
     
