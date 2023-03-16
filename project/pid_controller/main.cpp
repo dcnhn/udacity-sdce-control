@@ -308,8 +308,7 @@ int main ()
 
           if (num_points > 0)
           {
-            // Compute displacement vector and the magnitude
-            // std::size_t index = 1;
+            // Update index variable after sanity check
             index = num_points - 1;
 
             // Compute angle between current position and last trajectory point
