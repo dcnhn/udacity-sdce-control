@@ -228,8 +228,8 @@ int main ()
   PID pid_throttle = PID();
 
   // Initialize both controllers, start with dummy values
-  pid_steer.Init(-0.02, -0.008, -0.01, 1.2, -1.2);
-  pid_throttle.Init(0.1, 0.03, 0.07, 1.0, -1.0);
+  pid_steer.Init(0.1, 0.002, 0.025, 1.2, -1.2);
+  pid_throttle.Init(0.085, 0.03, 0.1, 1.0, -1.0);
 
   h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i, &prev_timer](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
   {
@@ -296,113 +296,46 @@ int main ()
           pid_steer.UpdateDeltaTime(new_delta_time);
 
           // Compute steer error
-          double error_steer;
-          double steer_output;
+          double error_steer{0.0};
+          double steer_output{0.0};
+          double planned_angle{0.0};
 
           /**
           * TODO (step 3): compute the steer error (error_steer) from the position and the desired trajectory
           **/
-          error_steer = 0;
-
           size_t num_points = std::min(x_points.size(), y_points.size());
+          std::size_t index = 0;
 
           if (num_points > 0)
           {
             // Compute displacement vector and the magnitude
-            double disp_vector_x = x_points.at(num_points - 1) - x_position;
-            double disp_vector_y = y_points.at(num_points - 1) - y_position;
-            double magnitude_disp = sqrt((disp_vector_x * disp_vector_x) + (disp_vector_y * disp_vector_y));
+            // std::size_t index = 1;
+            index = num_points - 1;
 
-            // Compute the dot product between both vectors
-            double yaw_vector_x = cos(yaw);
-            double yaw_vector_y = sin(yaw);
-
-            // Check if the dot product is positive
-            // Positive dot product means the last point of the 
-            if (std::abs(magnitude_disp) >= 0.001)
+            // Compute angle between current position and last trajectory point
+            // Please note:
+            // The simulation has a really high frame time which leads to x_position > x_points.
+            // Therefore, check if current x is higher than planned x.
+            if (x_points.at(index) > x_position)
             {
-              disp_vector_x /= magnitude_disp;
-              disp_vector_y /= magnitude_disp;
-
-              // Compute cosine(angle) of the unit vectors which is the dot product
-              double dot_product = (yaw_vector_x * disp_vector_x) + (yaw_vector_y * disp_vector_y);
-
-              // Compute z-component of cross product
-              double cross_product = yaw_vector_x * (-disp_vector_y) + yaw_vector_y * disp_vector_x;
-
-              // Compute error steer
-              error_steer = (cross_product < 0.0) ? -1.0 : 1.0;
-              error_steer *= acos(dot_product);
+              // Normal path just compute the angle between both points
+              planned_angle = angle_between_points(x_position, y_position, x_points[index], y_points[index]);
             }
-          }
-
-#if 0
-          size_t num_iterations = std::min(x_points.size(), y_points.size());
-          num_iterations = (num_iterations > 1) ? (num_iterations - 1) : 0;
-
-          // Get number of iterations
-          // The segments of the path are computed within the loop.
-          // Therefore, the path should have at least 2 samples.
-          size_t num_iterations = std::min(x_points.size(), y_points.size());
-          num_iterations = (num_iterations > 1) ? (num_iterations - 1) : 0;
-
-          // Iterate over the planned path if the number of samples is valid
-          for (size_t i = 0; i < num_iterations; i++)
-          {
-            // Compute the segment vector
-            double segment_vector_x = x_points.at(i + 1) - x_points.at(i);
-            double segment_vector_y = y_points.at(i + 1) - y_points.at(i);
-
-            // Compute the displacement vector between ith sample and current position
-            double disp_vector_x = x_position - x_points.at(i);
-            double disp_vector_y = y_position - y_points.at(i);
-
-            // Compute the dot product between both vectors
-            double dot_product = (segment_vector_x * disp_vector_x) + (segment_vector_y * disp_vector_y);
-
-            // Check if the dot product is negative
-            // Negative dot product means the current position is behind the currently processed sample
-            if (dot_product < 0.0)
+            else
             {
-              // Re-compute with predecessor point
-              if (i > 0)
-              {
-                segment_vector_x = x_points.at(i) - x_points.at(i - 1);
-                segment_vector_y = y_points.at(i) - y_points.at(i - 1);
+              // In this path, the car passed the final point. Use target point as reference for angle computation.
+              // Reason: 
+              // If this is not done, then we will have huge angle error leading to high controller output.
+              // This results in overshooting of the controller.
+              planned_angle = angle_between_points(x_points[index], y_points[index], x_position, y_position);
 
-                disp_vector_x = x_position - x_points.at(i - 1);
-                disp_vector_y = y_position - y_points.at(i - 1);
-              }
-
-              // Compute magnitude
-              double magnitude_segment = sqrt((segment_vector_x * segment_vector_x) + (segment_vector_y * segment_vector_y));
-              double magnitude_disp = sqrt((disp_vector_x * disp_vector_x) + (disp_vector_y * disp_vector_y));
-
-              // Normalize vectors if the magnitude is not zero
-              if ((std::abs(magnitude_disp) >= 0.001) && (std::abs(magnitude_segment) >= 0.001))
-              {
-                segment_vector_x /= magnitude_segment;
-                segment_vector_y /= magnitude_segment;
-
-                disp_vector_x /= magnitude_disp;
-                disp_vector_y /= magnitude_disp;
-
-                // Compute cosine(angle) of the unit vectors which is the dot product
-                dot_product = (segment_vector_x * disp_vector_x) + (segment_vector_y * disp_vector_y);
-
-                // Compute z-component of cross product
-                double cross_product = segment_vector_x * (-disp_vector_y) + segment_vector_y * disp_vector_x;
-
-                // Compute error steer
-                error_steer = (cross_product < 0.0) ? -1.0 : 1.0;
-                error_steer *= acos(dot_product);
-              }
-
-              // End for-loop
-              break;
+              // We also have to flip the angle to ensure controlling to the correct direction
+              planned_angle *= -1.0;
             }
+
+            // Compute the error
+            error_steer = planned_angle - yaw;
           }
-#endif
 
           /**
           * TODO (step 3): uncomment these lines
@@ -417,17 +350,16 @@ int main ()
               file_steer.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
           }
 
-          // Save first two samples of planned path in local variables
-          double x0_planned = (x_points.size() > 0) ? x_points.at(0) : 0.0;
-          double x1_planned = (x_points.size() > 1) ? x_points.at(1) : 0.0;
-          double y0_planned = (y_points.size() > 0) ? y_points.at(0) : 0.0;
-          double y1_planned = (y_points.size() > 1) ? y_points.at(1) : 0.0;
-
           file_steer  << i;
           file_steer  << " " << sim_time;
           file_steer  << " " << error_steer;
           file_steer  << " " << steer_output;
           file_steer  << " " << yaw;
+          file_steer  << " " << planned_angle;
+          file_steer  << " " << x_position;
+          file_steer  << " " << y_position;
+          file_steer  << " " << x_points[index];
+          file_steer  << " " << y_points[index];
           file_steer  << " " << pid_steer.output_p;
           file_steer  << " " << pid_steer.output_i;
           file_steer  << " " << pid_steer.output_d << endl;

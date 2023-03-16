@@ -53,13 +53,32 @@ void PID::UpdateError(double cte) {
         error_d = (1.0 - FILTER_D) * error_d + FILTER_D * new_error_d;
     }
 
-    // Numerical integration for error_p.
-    // For simplicity, use trapezoidal rule:
-    // increment = 0.5 * delta_time * (cte + previous_cte)
-    double increment = 0.5 * dt * (error_p + previous_error_p);
+    // Increase reset counter if cte is zero
+    if (std::abs(cte) >= DIV_ZERO_THRESH)
+    {
+        reset_counter_i = 0;
+    }
+    else
+    {
+        reset_counter_i++;
+    }
     
-    // Add increment to I-error.
-    error_i += increment;
+    if (reset_counter_i >= COUNTER_RESET_I)
+    {
+        // Reset I error
+        error_i = 0.0;
+        reset_counter_i = 0;
+    }
+    else
+    {
+        // Numerical integration for error_p.
+        // For simplicity, use trapezoidal rule:
+        // increment = 0.5 * delta_time * (cte + previous_cte)
+        double increment = 0.5 * dt * (error_p + previous_error_p);
+        
+        // Add increment to I-error.
+        error_i += increment;
+    }
 }
 
 double PID::TotalError() {

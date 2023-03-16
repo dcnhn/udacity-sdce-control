@@ -7,6 +7,8 @@
 #ifndef PID_CONTROLLER_H
 #define PID_CONTROLLER_H
 
+#include <cstddef>
+
 class PID {
 public:
 
@@ -79,7 +81,10 @@ public:
 private:
 
     static constexpr double DIV_ZERO_THRESH{0.0001};
-    static constexpr double FILTER_D{0.8};
+    static constexpr double FILTER_D{1.0};
+    static constexpr std::size_t COUNTER_RESET_I{2};
+
+    std::size_t reset_counter_i{0};
 };
 
 #endif //PID_CONTROLLER_H
